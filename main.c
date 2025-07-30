@@ -1,10 +1,17 @@
-
+#include <stdlib.h>
+#include <string.h>
 #include "raylib.h"
 
 #define SCREEN_WIDTH 780
 #define SCREEN_HEIGHT 480
 #define GRID_SIZE 8
 #define MAX_COLOR_COUNT 24
+#define MAX_FRAMES 12
+
+// a new struct for frames
+typedef struct {
+  Color grid[GRID_SIZE][GRID_SIZE];
+} Frame;
 
 int main (void)
 {
@@ -32,10 +39,15 @@ int main (void)
     colors_recs[i].y =  start_y + (rect_height + spacing ) * row;
     colors_recs[i].width = rect_width;
     colors_recs[i].height = rect_height;
-      }
+  }
   
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GIF maker");
   int CELL_SIZE = SCREEN_HEIGHT / GRID_SIZE;
+
+  //frames storage
+  Frame* frames = (Frame*)malloc(MAX_FRAMES * sizeof(Frame));
+  int current_frame = 0;
+  int total_frames = 1;
 
   
 
@@ -45,7 +57,8 @@ int main (void)
     {
       for(int x = 0; x < GRID_SIZE; x++)
 	{
-	  grid[x][y] = WHITE;
+	  frames[current_frame].grid[x][y] = WHITE;
+	  grid[x][y]= WHITE;
 	}
       
     }
@@ -58,7 +71,22 @@ int main (void)
     {
       Vector2 mouse_pos = GetMousePosition();
 
+      if(IsKeyPressed(KEY_PAGE_UP) && current_frame > 0) {
+	current_frame--;
+	
+	memcpy(grid, frames[current_frame].grid, sizeof(grid));
+      }
 
+      if(IsKeyPressed(KEY_PAGE_DOWN) && current_frame < total_frames - 1){
+	current_frame++;
+
+	memcpy(grid, frames[current_frame].grid, sizeof(grid));
+      }
+      if(IsKeyPressed(KEY_N)&& total_frames < MAX_FRAMES){
+	memcpy(frames[total_frames].grid, grid, sizeof(grid));
+	current_frame = total_frames;
+	total_frames++;
+      }
       
       if(
 	 mouse_pos.x > 300 && mouse_pos.x < SCREEN_WIDTH
@@ -104,8 +132,10 @@ int main (void)
 	} else color_mouse_hover = -1;
       }
       if((color_mouse_hover >= 0 ) && (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))){
-	  color_selected = color_mouse_hover;
-	}
+	color_selected = color_mouse_hover;
+      }
+
+      memcpy(frames[current_frame].grid, grid, sizeof(grid));
       
       BeginTextureMode(canvas);
       
@@ -137,10 +167,14 @@ int main (void)
       
       DrawTextureRec(canvas.texture, (Rectangle){0, 0, (float)canvas.texture.width, (float)-canvas.texture.height},(Vector2){300, 0}, WHITE);
 
+      DrawText(TextFormat("Frame: %d / %d", current_frame + 1, total_frames), 10, SCREEN_HEIGHT - 30, 20, WHITE);
 
       
       EndDrawing();
     }
+
+  free(frames);
+  UnloadRenderTexture(canvas);
 
   CloseWindow();
   return 0;
