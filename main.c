@@ -14,16 +14,15 @@ typedef struct {
   Color grid[GRID_SIZE][GRID_SIZE];
 } Frame;
 
+Color colors[MAX_COLOR_COUNT] = {
+  LIGHTGRAY,GRAY,DARKGRAY,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN, SKYBLUE,BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, WHITE, BLACK, MAGENTA
+};
 
-
-void save_as_gif(Frame* frames, int frame_count, const char* file_name, int cell_size, int delay_ms);
+//void save_as_gif();
 
 int main (void)
 {
 
-  Color colors[MAX_COLOR_COUNT] = {
-    LIGHTGRAY,GRAY,DARKGRAY,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN, SKYBLUE,BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, WHITE, BLACK, MAGENTA
-  };
   int color_selected = 0;
   int color_mouse_hover  = 0; // for later
 
@@ -93,7 +92,7 @@ int main (void)
 	total_frames++;
       }
       if(IsKeyPressed(KEY_G)) {
-	save_as_gif(frames, total_frames, "anim.gif", 64, 100);
+	//save_as_gif();
       }
       
       if(
@@ -190,56 +189,3 @@ int main (void)
 
 
 
-
-void save_as_gif(Frame *frames, int frame_count, const char *file_name,
-                 int cell_size, int delay_ms) {
-
-  int width = GRID_SIZE * cell_size;
-  int height = GRID_SIZE * cell_size;
-  
-  //create gif
-  GifFileType *gif = EGifOpenFileName(file_name, 0, NULL);
-  if (!gif) {
-    TraceLog(LOG_ERROR, "error gif not created");
-    return;
-  }
-
-
-  ColorMapObject *cmap = GifMakeMapObject(256, NULL);
-  int transparent_index = 0;
-
-  EGifPutScreenDesc(gif, width, height, 256, transparent_index, cmap);
-
-  unsigned char nsle[3] = {1, 0, 0};
-  EGifPutExtension(gif, 0xFF , 11, "NETSCAPE2.0");
-  EGifPutExtension(gif, 0x01, 3, nsle);
-
-  for (int i = 0; i < frame_count; i++) {
-    GifByteType *pixels = (GifByteType*)malloc(width * height);
-    for(int y = 0; y < height; y++){
-      for(int x = 0; x < width; x++){
-	int grid_x = x / cell_size;
-	int grid_y = y / cell_size;
-
-	Color c = frames[i].grid[grid_x][grid_y];
-
-	if(c.a == 0){
-	  pixels[y*width + x] = transparent_index;
-	} else {
-	  pixels[y * width + x] = 1 + ((c.r + c.g + c.b)/3) % 255;
-	}
-      }
-    }
-
-    EGifPutExtension(gif, 0xF9, 4, (unsigned char[]){0, delay_ms/10, 0,transparent_index});
-    EGifPutImageDesc(gif, 0, 0, width, height, 0, NULL);
-    EGifPutLine(gif, pixels, width * height);
-    free(pixels);
-    
-  }
-
-  EGifCloseFile(gif, NULL);
-
-  TraceLog(LOG_INFO, "Gif saved: %s", file_name);
-  
-}
