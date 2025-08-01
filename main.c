@@ -1,3 +1,4 @@
+
 #include <stdlib.h>
 #include <string.h>
 #include <gif_lib.h>
@@ -6,11 +7,10 @@
 
 #define SCREEN_WIDTH 780
 #define SCREEN_HEIGHT 480
-#define GRID_SIZE 16
+#define GRID_SIZE 20
 #define MAX_COLOR_COUNT 24
 #define MAX_FRAMES 12
 
-// a new struct for frames
 typedef struct {
   Color grid[GRID_SIZE][GRID_SIZE];
 } Frame;
@@ -27,8 +27,10 @@ void save_frames_as_pngs(Frame* frames, int frame_count, int cell_size) {
       .mipmaps = 1
     };
 
-     Image scaled_image = ImageCopy(frame_image);
+    Image scaled_image = ImageCopy(frame_image);
     ImageResizeNN(&scaled_image, GRID_SIZE * cell_size, GRID_SIZE * cell_size);
+    ImageRotate(&scaled_image, 90);
+    ImageFlipHorizontal(&scaled_image);
     char file_name[256];
 
     sprintf(file_name, "temp/frame_%03d.png", i);
@@ -60,7 +62,7 @@ void create_gif_with_ffmeg(const char* output_file_name, int frame_delay) {
 int main (void)
 {
   Color colors[MAX_COLOR_COUNT] = {
-    LIGHTGRAY,GRAY,DARKGRAY,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN, SKYBLUE,BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, WHITE, BLACK, MAGENTA
+    LIGHTGRAY,GRAY,DARKGRAY,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN, SKYBLUE,BLUE, DARKBLUE,MAGENTA, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, BLACK, WHITE
   };
 
   int color_selected = 0;
@@ -84,6 +86,15 @@ int main (void)
     colors_recs[i].width = rect_width;
     colors_recs[i].height = rect_height;
   }
+
+  //define controls recs {x, y, width, height}
+  Rectangle save_rec = {10, 125, 133.5, 30};
+  Rectangle clear_rec = {153.5,125, 133.5, 30};
+  Rectangle frame_rec = {10, 165 , 133.5, 30};
+  Rectangle prev_frame_rec = {153.5, 165, 64.75, 30};
+  Rectangle next_frame_rec = {222.25, 165, 64.75, 30};
+  Rectangle add_frame_rec = {10, 205, 133.5, 30};
+  Rectangle delete_frame_rec = {153.5, 205, 133.5, 30};
   
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GIF maker");
   int CELL_SIZE = SCREEN_HEIGHT / GRID_SIZE;
@@ -114,33 +125,42 @@ int main (void)
   while(!WindowShouldClose())
     {
       Vector2 mouse_pos = GetMousePosition();
-
-      if(IsKeyPressed(KEY_A) && current_frame > 0) {
+      //prev frame
+      if((IsKeyPressed(KEY_A) && current_frame > 0) || (CheckCollisionPointRec( mouse_pos, prev_frame_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && current_frame > 0) ) {
 	current_frame--;
 	
 	memcpy(grid, frames[current_frame].grid, sizeof(grid));
       }
 
-      if(IsKeyPressed(KEY_D) && current_frame < total_frames - 1){
+
+      //next frame
+      if((IsKeyPressed(KEY_D) && current_frame < total_frames - 1) || (CheckCollisionPointRec( mouse_pos, next_frame_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && current_frame <  total_frames - 1)){
 	current_frame++;
 
 	memcpy(grid, frames[current_frame].grid, sizeof(grid));
       }
-      if(IsKeyPressed(KEY_N)&& total_frames < MAX_FRAMES){
+
+      //new frame
+      if((IsKeyPressed(KEY_N)&& total_frames < MAX_FRAMES) ||  (CheckCollisionPointRec( mouse_pos, add_frame_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && current_frame < MAX_FRAMES)){
 	memcpy(frames[total_frames].grid, grid, sizeof(grid));
 	current_frame = total_frames;
 	total_frames++;
       }
-      if(IsKeyPressed(KEY_DELETE) && total_frames > 1){
-	current_frame = total_frames - 1;
+
+      //delete frame
+      if((IsKeyPressed(KEY_DELETE) && total_frames > 1) || (CheckCollisionPointRec( mouse_pos, delete_frame_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && total_frames > 1)){
+	current_frame = total_frames - 2;
 	total_frames--;
       }
-      if(IsKeyPressed(KEY_G)) {
-	//save_as_gif();
+
+      //save gif
+      if(IsKeyPressed(KEY_G) || (CheckCollisionPointRec( mouse_pos, save_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
 	save_frames_as_pngs(frames, total_frames, CELL_SIZE);
 	create_gif_with_ffmeg("animate.gif", 20);
       }
+
       
+      //draw and erase 
       if(
 	 mouse_pos.x > 300 && mouse_pos.x < SCREEN_WIDTH
 	 && mouse_pos.y > 0 && mouse_pos.y < SCREEN_HEIGHT){
@@ -156,7 +176,9 @@ int main (void)
 	}
       }
 
-      if(IsKeyPressed(KEY_C)){
+
+      //clear
+      if(IsKeyPressed(KEY_C) ||( CheckCollisionPointRec(mouse_pos, clear_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))){
 	for(int y = 0; y < GRID_SIZE; y++)
 	  {
 	    for(int x = 0; x < GRID_SIZE; x++)
@@ -201,27 +223,73 @@ int main (void)
 	    }
       
 	}
- 
 
       EndTextureMode();   
 
       
       BeginDrawing();
-      ClearBackground(SKYBLUE);
+      ClearBackground(BLACK);
 
+      //colors
+      DrawRectangle(10,10, 277, 105, RAYWHITE);
       //draw colors
       for(int i = 0; i < MAX_COLOR_COUNT; i++){
 	DrawRectangleRec(colors_recs[i] , colors[i]);
-	if(i == color_selected) {
+	if(i == color_selected && i == MAX_COLOR_COUNT - 1){
+	  DrawRectangleLinesEx(colors_recs[i], 3 , DARKGRAY);
+	}else if(i == color_selected) {
 	  DrawRectangleLinesEx(colors_recs[i], 3 , WHITE);
 	}
 	
       }
 
+      //
+      DrawRectangleRec(save_rec, WHITE);
+      DrawText(TextFormat("Save GIF"),14, save_rec.y + 5, 20, BLACK);
+      
+      DrawRectangleRec(clear_rec, WHITE);
+      DrawText(TextFormat("Clear Frame"),clear_rec.x + 4, clear_rec.y + 5, 20, BLACK);
+      
+      DrawRectangleRec(frame_rec, WHITE);
+      DrawText(TextFormat("Frame:%d/%d", current_frame + 1, total_frames), frame_rec.x + 4, frame_rec.y + 5, 20, BLACK);
+
+      DrawRectangleRec(prev_frame_rec, WHITE);
+      DrawText(TextFormat("<"), prev_frame_rec.x + 32, prev_frame_rec.y + 5, 20, BLACK);
+      
+      DrawRectangleRec(next_frame_rec, WHITE);
+      DrawText(TextFormat(">"), next_frame_rec.x + 32, next_frame_rec.y + 5, 20, BLACK);
+
+      DrawRectangleRec(add_frame_rec, WHITE);
+      DrawText(TextFormat("Add"), add_frame_rec.x + 4, add_frame_rec.y + 5, 20, BLACK);
+      
+      DrawRectangleRec(delete_frame_rec, WHITE);
+      DrawText(TextFormat("Delete"), delete_frame_rec.x + 4, delete_frame_rec.y + 5, 20, BLACK);
+
       DrawTextureRec(canvas.texture, (Rectangle){0, 0, (float)canvas.texture.width, (float)-canvas.texture.height},(Vector2){300, 0}, WHITE);
 
-      DrawText(TextFormat("Frame: %d / %d", current_frame + 1, total_frames), 10, SCREEN_HEIGHT - 30, 20, WHITE);
 
+      //draw recs when hover
+      if(CheckCollisionPointRec(mouse_pos, clear_rec)){
+	DrawRectangleLinesEx(clear_rec, 2, RED);
+      }
+      if(CheckCollisionPointRec(mouse_pos, save_rec)){
+	DrawRectangleLinesEx(save_rec, 2, RED);
+      }
+      if(CheckCollisionPointRec(mouse_pos, frame_rec)){
+	DrawRectangleLinesEx(frame_rec, 2, RED);
+      }
+      if(CheckCollisionPointRec(mouse_pos, prev_frame_rec)){
+	DrawRectangleLinesEx(prev_frame_rec, 2, RED);
+      }
+      if(CheckCollisionPointRec(mouse_pos, next_frame_rec)){
+	DrawRectangleLinesEx(next_frame_rec, 2, RED);
+      }
+      if(CheckCollisionPointRec(mouse_pos, add_frame_rec)){
+	DrawRectangleLinesEx(add_frame_rec, 2, RED);
+      }
+      if(CheckCollisionPointRec(mouse_pos, delete_frame_rec)){
+	DrawRectangleLinesEx(delete_frame_rec, 2, RED);
+      }
       
       EndDrawing();
     }
@@ -232,6 +300,3 @@ int main (void)
   CloseWindow();
   return 0;
 }
-
-
-
