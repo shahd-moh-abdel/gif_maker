@@ -1,7 +1,5 @@
-
 #include <stdlib.h>
 #include <string.h>
-#include <gif_lib.h>
 #include <stdio.h>
 #include "raylib.h"
 
@@ -9,7 +7,7 @@
 #define SCREEN_HEIGHT 480
 #define GRID_SIZE 20
 #define MAX_COLOR_COUNT 24
-#define MAX_FRAMES 12
+#define MAX_FRAMES 24
 
 typedef struct {
   Color grid[GRID_SIZE][GRID_SIZE];
@@ -66,8 +64,10 @@ int main (void)
   };
 
   int color_selected = 0;
-  int color_mouse_hover  = 0; // for later
-
+  int color_mouse_hover  = 0; 
+  bool show_save_message = false;
+  int save_message_counter = 0;
+  
   //define color recs
   Rectangle colors_recs[MAX_COLOR_COUNT] = { 0 };
 
@@ -157,6 +157,7 @@ int main (void)
       if(IsKeyPressed(KEY_G) || (CheckCollisionPointRec( mouse_pos, save_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
 	save_frames_as_pngs(frames, total_frames, CELL_SIZE);
 	create_gif_with_ffmeg("animate.gif", 20);
+	show_save_message = true;
       }
 
       
@@ -188,6 +189,16 @@ int main (void)
       
 	  }
       }
+
+      //show save message for 2 seconds
+      if(show_save_message){
+	save_message_counter++;
+	if(save_message_counter > 200){
+	  show_save_message = false;
+	  save_message_counter = 0;
+	}
+      }
+      
 
       //color handling
       //with keys 
@@ -289,6 +300,12 @@ int main (void)
       }
       if(CheckCollisionPointRec(mouse_pos, delete_frame_rec)){
 	DrawRectangleLinesEx(delete_frame_rec, 2, RED);
+      }
+
+      if(show_save_message){
+        DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (Color){0, 0, 0, 150});
+        DrawRectangle(0, (SCREEN_HEIGHT/2) - 40, SCREEN_WIDTH, 80, DARKGREEN);
+	DrawText("GIF SAVED", (SCREEN_WIDTH / 2) - 80,( SCREEN_HEIGHT/2) - 20, 36, WHITE );
       }
       
       EndDrawing();
