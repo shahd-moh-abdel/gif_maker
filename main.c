@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+#include <time.h>
 #include "raylib.h"
 
 #define SCREEN_WIDTH 780
@@ -62,6 +64,12 @@ int main (void)
   Color colors[MAX_COLOR_COUNT] = {
     LIGHTGRAY,GRAY,DARKGRAY,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN, SKYBLUE,BLUE, DARKBLUE,MAGENTA, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, BLACK, WHITE
   };
+
+  //date for the gif name
+  time_t now = time(NULL);
+  struct tm *tm = localtime(&now);
+  char gifname[200];
+  snprintf(gifname, sizeof(gifname), "gif_%02d_%02d_%02d_%02d_%02d.gif",tm->tm_mday, tm->tm_mon + 1, tm->tm_hour, tm->tm_min, tm->tm_sec); 
 
   int color_selected = 0;
   int color_mouse_hover  = 0; 
@@ -156,7 +164,7 @@ int main (void)
       //save gif
       if(IsKeyPressed(KEY_G) || (CheckCollisionPointRec( mouse_pos, save_rec) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
 	save_frames_as_pngs(frames, total_frames, CELL_SIZE);
-	create_gif_with_ffmeg("animate.gif", 20);
+	create_gif_with_ffmeg(gifname, 20);
 	show_save_message = true;
       }
 
